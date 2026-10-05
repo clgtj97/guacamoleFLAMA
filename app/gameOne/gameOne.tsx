@@ -9,20 +9,35 @@ export default function GameOne() {
   useEffect(() => {
     // This code only runs on the client
     setIsClient(true);
-    
-    const checkDeviceType = () => {
-      const width = window.innerWidth;
-      const userAgent = navigator.userAgent;
-      
-      // Treat tablets as mobile (iPad, Android tablets, etc.)
-      const isMobileDevice = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini|Tablet|PlayBook|Silk/i.test(userAgent) || width <= 1024;
 
-      setIsMobile(isMobileDevice);
-    };
+    // One-time device detection (do not react to resize).
+    // This avoids DevTools resizing from toggling desktop into mobile view.
+    const userAgent = navigator.userAgent;
+    const params = new URLSearchParams(window.location.search);
 
-    checkDeviceType();
-    window.addEventListener('resize', checkDeviceType);
-    return () => window.removeEventListener('resize', checkDeviceType);
+    // Debug overrides:
+    // ?view=desktop -> force desktop
+    // ?view=mobile  -> force mobile
+    const forcedView = params.get('view');
+    if (forcedView === 'desktop') {
+      setIsMobile(false);
+      return;
+    }
+    if (forcedView === 'mobile') {
+      setIsMobile(true);
+      return;
+    }
+
+    // Keep localhost debugging stable on desktop unless explicitly forced.
+    const host = window.location.hostname;
+    const isLocalHost = host === 'localhost' || host === '127.0.0.1';
+    if (isLocalHost) {
+      setIsMobile(false);
+      return;
+    }
+
+    const isMobileUA = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini|Tablet|PlayBook|Silk/i.test(userAgent);
+    setIsMobile(isMobileUA);
   }, []);
 
   // Show loading state during SSR
@@ -34,5 +49,7 @@ export default function GameOne() {
     );
   }
 
-  return isMobile ? <GameOneMobile /> : <GameOneWeb />;
+  return isMobile
+    ? <GameOneMobile gameLogic={null} playAnimation={() => {}} />
+    : <GameOneWeb />;
 }

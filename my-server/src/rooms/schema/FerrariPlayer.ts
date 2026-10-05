@@ -9,6 +9,7 @@ export class FerrariPlayer extends Schema {
   @type("number") y: number = 0;
   @type("string") direction: string = "right";
   @type("string") currentAnimation: string = "idle";
+  @type("number") lastMoveAt: number = Date.now();
   @type("string") roomId: string = "outside";
   @type("boolean") isClubMember: boolean = false;
 }

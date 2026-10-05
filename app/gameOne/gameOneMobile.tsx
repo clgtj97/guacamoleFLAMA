@@ -518,8 +518,8 @@ function MobileGameArea({
 // MAIN MOBILE COMPONENT
 // ──────────────────────────────────────────────
 interface GameOneMobileProps {
-  gameLogic: any;
-  playAnimation: (animation: string) => void;
+  gameLogic?: any;
+  playAnimation?: (animation: string) => void;
 }
 
 export default function GameOneMobile({ gameLogic, playAnimation }: GameOneMobileProps) {

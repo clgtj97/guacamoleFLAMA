@@ -68,10 +68,10 @@ export default function CreateRou() {
     }
   };
 
-  console.log('RENDER - accessGranted:', accessGranted, 'showFormOverlay:', showFormOverlay, 'shouldContinue:', shouldContinueAnimation);
+  // Debug render log intentionally disabled to avoid console spam.
 
   if (accessGranted) {
-    console.log('SWITCHING TO GAMEONE COMPONENT!');
+    console.log('Switching to GameOne component');
     return <GameOne />;
   }
 

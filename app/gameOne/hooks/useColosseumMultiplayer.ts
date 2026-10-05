@@ -1,6 +1,40 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Client, Room } from 'colyseus.js';
 
+function resolveColyseusUrl(): string {
+  const envUrl = (import.meta as any)?.env?.VITE_COLYSEUS_URL as string | undefined;
+  const queryUrl = typeof window !== 'undefined'
+    ? new URLSearchParams(window.location.search).get('colyseusUrl') || undefined
+    : undefined;
+  const storageUrl = typeof window !== 'undefined'
+    ? window.localStorage.getItem('VITE_COLYSEUS_URL') || undefined
+    : undefined;
+
+  if (queryUrl && typeof window !== 'undefined') {
+    window.localStorage.setItem('VITE_COLYSEUS_URL', queryUrl);
+  }
+
+  const value = (queryUrl || envUrl || storageUrl || '').trim();
+
+  if (!value) {
+    throw new Error('VITE_COLYSEUS_URL is not set. Add it to .env or pass ?colyseusUrl=wss://... for quick local testing.');
+  }
+
+  if (value.startsWith('https://')) {
+    return `wss://${value.slice('https://'.length)}`;
+  }
+
+  if (value.startsWith('http://')) {
+    return `ws://${value.slice('http://'.length)}`;
+  }
+
+  if (!value.startsWith('ws://') && !value.startsWith('wss://')) {
+    throw new Error('VITE_COLYSEUS_URL must start with ws:// or wss://');
+  }
+
+  return value;
+}
+
 interface ColosseumPlayer {
   id: string;
   name: string;
@@ -35,13 +69,16 @@ export function useColosseumMultiplayer(playerName: string) {
 
   useEffect(() => {
     if (!playerName?.trim() || connectStartedRef.current) return;
-    connectStartedRef.current = true;
+    let wsUrl = '';
 
-    const envUrl = (import.meta as any)?.env?.VITE_COLYSEUS_URL as string | undefined;
-    const inferredUrl = typeof window !== 'undefined'
-      ? `${window.location.protocol === 'https:' ? 'wss' : 'ws'}://${window.location.host}`
-      : 'ws://localhost:2567';
-    const wsUrl = envUrl || inferredUrl || 'ws://localhost:2567';
+    try {
+      wsUrl = resolveColyseusUrl();
+    } catch (error: any) {
+      setConnectionError(error?.message || 'Invalid Colyseus URL configuration');
+      return;
+    }
+
+    connectStartedRef.current = true;
 
     let activeRoom: Room | null = null;
     const client = new Client(wsUrl);

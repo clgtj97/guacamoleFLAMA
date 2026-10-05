@@ -188,6 +188,7 @@ interface MultiplayerRenderPlayer {
   y: number;
   direction: 'left' | 'right';
   currentAnimation: 'walk' | 'idle';
+  lastMoveAt: number;
 }
 
 // ──────────────────────────────────────────────
@@ -393,6 +394,7 @@ function CharacterSprite({
   verticalPosition,
   direction, 
   currentFrame, 
+  smoothMovement = false,
   SPRITE_CONFIG, 
   spriteSheet 
 }: {
@@ -400,6 +402,7 @@ function CharacterSprite({
   verticalPosition: number;
   direction: 'left' | 'right';
   currentFrame: number;
+  smoothMovement?: boolean;
   SPRITE_CONFIG: any;
   spriteSheet: string;
 }) {
@@ -427,6 +430,7 @@ function CharacterSprite({
         width: `${visualW}px`,
         height: `${croppedH}px`,
         overflow: 'hidden',
+        transition: smoothMovement ? 'left 90ms linear, bottom 90ms linear' : 'none',
         transform: direction === 'left' ? 'scaleX(-1)' : 'none',
         transformOrigin: 'bottom center', // Changed from center center
         marginLeft: `-${Math.round(visualW / 2)}px`,
@@ -437,6 +441,53 @@ function CharacterSprite({
         imageRendering: 'pixelated',
         pointerEvents: 'none',
       }}
+    />
+  );
+}
+
+function RemoteCharacterSprite({ player }: { player: MultiplayerRenderPlayer }) {
+  const { currentAnimation, currentFrame, playAnimation } = useWalkingAnimation(SPRITE_CONFIG);
+  const motionStopTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const lastPosRef = useRef({ x: player.x, y: player.y });
+
+  useEffect(() => {
+    const moved = Math.abs(player.x - lastPosRef.current.x) > 0.25 || Math.abs(player.y - lastPosRef.current.y) > 0.25;
+    const shouldWalk = moved || player.currentAnimation === 'walk';
+
+    if (motionStopTimerRef.current) {
+      clearTimeout(motionStopTimerRef.current);
+      motionStopTimerRef.current = null;
+    }
+
+    lastPosRef.current = { x: player.x, y: player.y };
+
+    if (shouldWalk) {
+      playAnimation('walk');
+      motionStopTimerRef.current = setTimeout(() => {
+        playAnimation('idle');
+      }, 180);
+    } else {
+      playAnimation('idle');
+    }
+  }, [player.x, player.y, player.currentAnimation, playAnimation]);
+
+  useEffect(() => {
+    return () => {
+      if (motionStopTimerRef.current) {
+        clearTimeout(motionStopTimerRef.current);
+      }
+    };
+  }, []);
+
+  return (
+    <CharacterSprite
+      position={player.x}
+      verticalPosition={player.y}
+      direction={player.direction}
+      currentFrame={currentAnimation === 'walk' ? currentFrame : 0}
+      smoothMovement
+      SPRITE_CONFIG={SPRITE_CONFIG}
+      spriteSheet={spriteSheet}
     />
   );
 }
@@ -903,6 +954,7 @@ function ChatOverlay({
               height={512}
               disableDemoMessages={isMultiplayerConnected}
               externalMessages={externalMessages}
+              isMultiplayerConnected={isMultiplayerConnected}
               onMessageSend={onMessageSend}
               onMessageReact={onMessageReact}
               onMessagePin={onMessagePin}
@@ -1019,20 +1071,14 @@ function GameArea({
 
           {remotePlayers.map((player) => (
             <React.Fragment key={player.id}>
-              <CharacterSprite
-                position={player.x}
-                verticalPosition={player.y}
-                direction={player.direction}
-                currentFrame={player.currentAnimation === 'walk' ? currentFrame : 0}
-                SPRITE_CONFIG={SPRITE_CONFIG}
-                spriteSheet={spriteSheet}
-              />
+              <RemoteCharacterSprite player={player} />
               <div
                 className="absolute z-30 text-white text-[11px] px-2 py-0.5 rounded bg-black/70 border border-white/20"
                 style={{
                   left: `${Math.round(player.x)}px`,
                   bottom: `${Math.round(player.y + (SPRITE_VISUAL_H - SPRITE_FOOT_TRIM) + 8)}px`,
                   transform: 'translateX(-50%)',
+                  transition: 'left 90ms linear, bottom 90ms linear',
                   fontFamily: 'Bebas Neue',
                   letterSpacing: '0.06em',
                   pointerEvents: 'none',
@@ -1271,6 +1317,17 @@ const isTransRef      = useRef(gameLogic.isTransitioning);
 const showRacerRef     = useRef(gameLogic.showRacerApp);
 const showColosseumRef = useRef(false);
 
+const isTextInputTarget = (target: EventTarget | null) => {
+  if (!(target instanceof HTMLElement)) return false;
+  const tag = target.tagName;
+  return target.isContentEditable || tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT';
+};
+
+const isTextInputActive = () => {
+  if (typeof document === 'undefined') return false;
+  return isTextInputTarget(document.activeElement);
+};
+
 // Keep refs in sync with React state each render
 forcedIdleRef.current   = gameLogic.forcedIdle;
 isTransRef.current      = gameLogic.isTransitioning;
@@ -1282,6 +1339,7 @@ useEffect(() => {
   if (!isClient) return;
 
   const handleKeyDown = (e: KeyboardEvent) => {
+    if (isTextInputTarget(e.target) || isTextInputActive()) return;
     if (isTransRef.current || showRacerRef.current || e.repeat) return;
 
     switch (e.code) {
@@ -1311,6 +1369,7 @@ useEffect(() => {
   };
 
   const handleKeyUp = (e: KeyboardEvent) => {
+    if (isTextInputTarget(e.target) || isTextInputActive()) return;
     switch (e.code) {
       case 'ArrowRight': case 'KeyD':
         keysRef.current.right = false;
@@ -1365,7 +1424,7 @@ useEffect(() => {
     lastTime = now;
 
     const keys = keysRef.current;
-    const paused = isTransRef.current || showRacerRef.current || showColosseumRef.current;
+    const paused = isTransRef.current || showRacerRef.current || showColosseumRef.current || isTextInputActive();
 
     if (!paused) {
       // ── Horizontal ──
@@ -1394,12 +1453,10 @@ useEffect(() => {
 
       // ── Animation (same tick, same state read) ──
       const anyMoving = keys.left || keys.right || keys.up || keys.down;
-      if (forcedIdleRef.current) {
+      if (forcedIdleRef.current || !anyMoving) {
         playAnimation('idle');
-      } else if (anyMoving) {
-        playAnimation('walk');
       } else {
-        playStopAnimation();
+        playAnimation('walk');
       }
     } else {
       // While transitioning/racing, bleed velocities to zero
@@ -1416,7 +1473,7 @@ useEffect(() => {
   // handleMovement/handleVerticalMovement are useCallback in useGameLogic.
   // playAnimation/playStopAnimation are useCallback in useWalkingAnimation.
   // None of these change identity across renders → loop never restarts.
-}, [isClient, gameLogic.handleMovement, gameLogic.handleVerticalMovement, playAnimation, playStopAnimation]);
+}, [isClient, gameLogic.handleMovement, gameLogic.handleVerticalMovement, playAnimation]);
 
   // ── Google Fonts (unchanged) ──
   useEffect(() => {
@@ -1587,6 +1644,7 @@ useEffect(() => {
       y: Number(player.y || 0),
       direction: player.direction === 'left' ? 'left' : 'right',
       currentAnimation: player.currentAnimation === 'walk' ? 'walk' : 'idle',
+      lastMoveAt: Number(player.lastMoveAt || 0),
     }));
 
   return (

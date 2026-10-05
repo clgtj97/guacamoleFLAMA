@@ -44,6 +44,7 @@ interface VirtualChatProps {
   disableAutoScroll?: boolean;
   disableDemoMessages?: boolean;
   externalMessages?: Partial<Message>[];
+  isMultiplayerConnected?: boolean;
   containerRef?: React.RefObject<HTMLDivElement>;
   onScroll?: () => void;
   onMessageSend?: (message: Partial<Message>) => void;
@@ -305,6 +306,7 @@ const VirtualChat: React.FC<VirtualChatProps> = ({
   disableAutoScroll = false,
   disableDemoMessages = false,
   externalMessages = [],
+  isMultiplayerConnected = false,
   containerRef,
   onScroll,
   onMessageSend,
@@ -462,7 +464,9 @@ const VirtualChat: React.FC<VirtualChatProps> = ({
       replyTo: replyingTo || undefined // Include reply reference
     };
 
-    setMessages(prev => [...prev, newMessage]);
+    if (!isMultiplayerConnected) {
+      setMessages(prev => [...prev, newMessage]);
+    }
     setInputMessage('');
     setReplyingTo(null); // Clear reply after sending
     onMessageSend?.(newMessage);
@@ -492,7 +496,9 @@ const VirtualChat: React.FC<VirtualChatProps> = ({
         replyTo: replyingTo || undefined
       };
 
-      setMessages(prev => [...prev, voiceMessage]);
+      if (!isMultiplayerConnected) {
+        setMessages(prev => [...prev, voiceMessage]);
+      }
       onMessageSend?.(voiceMessage);
       setReplyingTo(null); // Clear reply after sending
 
@@ -898,7 +904,8 @@ const VirtualChat: React.FC<VirtualChatProps> = ({
               type="text"
               value={inputMessage}
               onChange={handleInputChange}
-              onKeyPress={(e) => {
+              onKeyDown={(e) => {
+                e.stopPropagation();
                 if (e.key === 'Enter' && !e.shiftKey) {
                   e.preventDefault();
                   handleSendMessage();
