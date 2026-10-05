@@ -27,32 +27,11 @@ export default defineConfig({
         });
       },
     },
-    // Add this plugin to handle CJS requires in browser
-    {
-      name: "fix-colyseus-require",
-      config() {
-        return {
-          define: {
-            global: "globalThis",
-          },
-        };
-      },
-    },
   ],
-  ssr: {
-    noExternal: [
-      /@react-router/,
-      /@remix-run/,
-      /@netlify/,
-      "use-debounce",
-      "lightweight-charts",
-      "colyseus.js", // ✅ Add this to handle CJS/ESM
-    ],
-  },
   assetsInclude: ['**/*.fbx', '**/*.FBX'],
   optimizeDeps: {
-    include: ["react", "react-dom", "react/jsx-runtime", "use-debounce", 'three'],
-    exclude: ["lightweight-charts", "colyseus.js"],
+    include: ["colyseus.js", "use-debounce", "three"],
+    exclude: ["lightweight-charts"],
   },
   build: {
     commonjsOptions: {
@@ -61,6 +40,7 @@ export default defineConfig({
     },
   },
   resolve: {
+    dedupe: ["react", "react-dom", "react-router", "react-router-dom"],
     alias: {
       // Ensure Node built-ins don't leak into browser
       "node-fetch": "isomorphic-fetch",

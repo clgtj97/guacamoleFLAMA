@@ -956,6 +956,8 @@ function GameArea({
   direction, 
   isTransitioning,
   remotePlayers,
+  localPlayerTag,
+  localPlayerId,
 }: {
   gameAreaRef: React.RefObject<HTMLDivElement>;
   displayBackground: string;
@@ -967,7 +969,11 @@ function GameArea({
   direction: 'left' | 'right';
   isTransitioning: boolean;
   remotePlayers: MultiplayerRenderPlayer[];
+  localPlayerTag: string;
+  localPlayerId: string;
 }) {
+  const shortId = (value: string) => String(value || 'guest').slice(0, 6);
+
   return (
     <div className="w-full h-full flex items-center justify-center min-h-0">
       <div
@@ -997,6 +1003,20 @@ function GameArea({
             spriteSheet={spriteSheet}
           />
 
+          <div
+            className="absolute z-30 text-white text-[11px] px-2 py-0.5 rounded bg-red-900/75 border border-red-300/40"
+            style={{
+              left: `${Math.round(position)}px`,
+              bottom: `${Math.round(verticalPosition + (SPRITE_VISUAL_H - SPRITE_FOOT_TRIM) + 8)}px`,
+              transform: 'translateX(-50%)',
+              fontFamily: 'Bebas Neue',
+              letterSpacing: '0.06em',
+              pointerEvents: 'none',
+            }}
+          >
+            {localPlayerTag} • {shortId(localPlayerId)}
+          </div>
+
           {remotePlayers.map((player) => (
             <React.Fragment key={player.id}>
               <CharacterSprite
@@ -1018,7 +1038,7 @@ function GameArea({
                   pointerEvents: 'none',
                 }}
               >
-                {player.name}
+                {player.name} • {shortId(player.id)}
               </div>
             </React.Fragment>
           ))}
@@ -1642,6 +1662,8 @@ useEffect(() => {
                 direction={gameLogic.direction}
                 isTransitioning={gameLogic.isTransitioning}
                 remotePlayers={remotePlayers}
+                localPlayerTag={currentUser.name}
+                localPlayerId={String(myPlayer?.id || currentUser.id)}
               />
             </div>
 
