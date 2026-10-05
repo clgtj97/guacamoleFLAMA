@@ -1,0 +1,10 @@
+diff --git a/node_modules/@react-router/node/dist/index.mjs b/node_modules/@react-router/node/dist/index.mjs
+index abc1234..def5678 100644
+--- a/node_modules/@react-router/node/dist/index.mjs
++++ b/node_modules/@react-router/node/dist/index.mjs
+@@ -21,7 +21,7 @@
+ // sessions/fileStorage.ts
+-import { promises as fsp } from "fs";
++import * as fsp from "fs/promises";
+ import * as path from "path";
+ import { createSessionStorage } from "react-router";
