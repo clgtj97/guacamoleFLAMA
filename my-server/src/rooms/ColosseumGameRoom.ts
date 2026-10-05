@@ -9,8 +9,8 @@ const RESPAWN_TIME = 5; // seconds
 const POWERUP_SPAWN_INTERVAL = 10; // seconds
 
 export class ColosseumGameRoom extends Room<ColosseumGameState> {
-  private gameLoop!: NodeJS.Timer;
-  private powerUpLoop!: NodeJS.Timer;
+private gameLoop!: ReturnType<typeof setInterval>;
+private powerUpLoop!: ReturnType<typeof setInterval>;
   
   onCreate(options: any) {
     console.log("🏟️ Colosseum Game Room created!", options);
