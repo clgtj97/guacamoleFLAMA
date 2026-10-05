@@ -50,7 +50,6 @@
     "uuid": "^13.0.0"
   },
   "devDependencies": {
-    "@netlify/vite-plugin-react-router": "^0.0.0",
     "@react-router/dev": "^7.16.0",
     "@types/node": "^20",
     "@types/react": "^18.3.12",
