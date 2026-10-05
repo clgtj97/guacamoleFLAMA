@@ -8,11 +8,12 @@
     "node": ">= 20.9.0"
   },
   "scripts": {
-    "start": "tsx watch src/index.ts",
+    "start": "node build/index.js",
+    "dev": "tsx watch src/index.ts",
     "loadtest": "tsx loadtest/example.ts --room ferrari_metaverse --numClients 2",
     "build": "npm run clean && tsc",
     "clean": "rimraf build",
-    "test": "mocha -r tsx test/**_test.ts --exit --timeout 15000"
+    "test": "mocha -r tsx test/**/*_test.ts --exit --timeout 15000"
   },
   "author": "",
   "license": "UNLICENSED",
@@ -39,3 +40,4 @@
     "express": "^4.18.2"
   }
 }
+
