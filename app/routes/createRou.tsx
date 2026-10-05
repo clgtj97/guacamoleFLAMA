@@ -13,7 +13,7 @@ export default function CreateRou() {
 }
 
 // Optional: Add loader if you need data loading
-export function loader() {
+function loader() {
   // Your data loading logic here
   return null;
 }

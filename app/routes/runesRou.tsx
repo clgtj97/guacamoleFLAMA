@@ -79,7 +79,7 @@ interface LiveRunesData {
   candlesticks: CandlestickData[];
 }
 
-export async function loader({ request }: { request: Request }) {
+async function loader({ request }: { request: Request }) {
   try {
     const url = new URL(request.url);
     const sort = url.searchParams.get('sort') || 'holders';

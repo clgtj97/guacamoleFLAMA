@@ -141,6 +141,6 @@ export default function CreateRou() {
   );
 }
 
-export function loader() {
+function loader() {
   return null;
 }
